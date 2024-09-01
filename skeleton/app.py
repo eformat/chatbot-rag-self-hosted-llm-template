@@ -165,12 +165,17 @@ def ask_llm(message, history):
     for next_token, content in stream(message):
         yield(content)
 
-with gr.Blocks(title="RHOAI HatBot", css="footer {visibility: hidden}") as demo:
+CSS ="""
+footer {visibility: hidden}
+"""
+
+with gr.Blocks(title="RHOAI HatBot", css=CSS, fill_height=True) as demo:
     chatbot = gr.Chatbot(
         show_label=False,
         avatar_images=(None, 'https://avatars.githubusercontent.com/u/65787031?v=4'),
         render=True,
-        likeable=False
+        likeable=False,
+        height=600,
         )
     gr.ChatInterface(
         ask_llm,
