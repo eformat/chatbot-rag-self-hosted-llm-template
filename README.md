@@ -59,13 +59,24 @@ Load vector extenstion
 podman exec -it postgres psql -d vectordb -c "CREATE EXTENSION vector;"
 ```
 
+Run a local model
+
+```bash
+python3 -m llama_cpp.server \
+  --model ~/instructlab/models/Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf \
+  --n_gpu_layers=-1 \
+  --chat_format llama-3 \
+  --n_ctx 4096 \
+  --port 8080
+```
+
 Export env.vars
 
 ```bash
-export INFERENCE_SERVER_URL=https://sno-llama3-predictor-llama-serving.apps.sno.sandbox.opentlc.com/v1
+export INFERENCE_SERVER_URL=http://localhost:8080/v1
 export DB_CONNECTION_STRING=postgresql+psycopg://postgres:password@localhost:5432/vectordb \
 export DB_COLLECTION_NAME=documents_test
-export MODEL_NAME=/mnt/models/Meta-Llama-3-8B-Instruct-Q8_0.gguf
+export MODEL_NAME=llama-3
 ```
 
 Run the app
