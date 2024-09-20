@@ -8,9 +8,13 @@ from dotenv import load_dotenv
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.chains import RetrievalQA
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.llms import VLLMOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain_community.vectorstores import PGVector
+
+# Check these classes for other options
+# from langchain_community.llms import VLLMOpenAI - vllm
+# from langchain_community.llms import OpenAI - /completions
 
 load_dotenv()
 
@@ -19,7 +23,7 @@ load_dotenv()
 APP_TITLE = 'Talk with your documentation'
 
 MODEL_NAME = os.getenv('MODEL_NAME', "mistralai/Mistral-7B-Instruct-v0.2")
-MAX_TOKENS = int(os.getenv('MAX_TOKENS', 1024))
+MAX_TOKENS = int(os.getenv('MAX_TOKENS', 32768))
 PRESENCE_PENALTY=float(os.getenv('PRESENCE_PENALTY', 1.03))
 
 INFERENCE_SERVER_URL = os.getenv('INFERENCE_SERVER_URL')
@@ -57,7 +61,7 @@ def stream(input_text) -> Generator:
 
     # Create a function to call - this will run in a thread
     def task():
-        resp = qa_chain({"query": input_text})
+        resp = qa_chain.invoke({"query": input_text})
         sources = remove_source_duplicates(resp['source_documents'])
         if len(sources) != 0:
             q.put("\n*Sources:* \n")
@@ -95,7 +99,8 @@ embeddings = HuggingFaceEmbeddings()
 store = PGVector(
     connection_string=DB_CONNECTION_STRING,
     collection_name=DB_COLLECTION_NAME,
-    embedding_function=embeddings)
+    embedding_function=embeddings,
+    use_jsonb=True)
 
 template="Q: {question} A:"
 
@@ -149,7 +154,7 @@ QA_CHAIN_PROMPT = PromptTemplate.from_template(template)
 
 import httpx
 
-llm = VLLMOpenAI(
+llm = ChatOpenAI(
     openai_api_key="EMPTY",
     openai_api_base=INFERENCE_SERVER_URL,
     model_name=MODEL_NAME,
@@ -168,7 +173,7 @@ qa_chain = RetrievalQA.from_chain_type(
         llm,
         retriever=store.as_retriever(
             search_type="similarity",
-            search_kwargs={"k": 4}
+            search_kwargs={"k": 5}
             ),
         chain_type_kwargs={"prompt": QA_CHAIN_PROMPT},
         return_source_documents=True
@@ -190,7 +195,7 @@ with gr.Blocks(title="RHOAI HatBot", css=CSS, fill_height=True) as demo:
         avatar_images=(None, 'https://avatars.githubusercontent.com/u/65787031?v=4'),
         render=True,
         likeable=False,
-        height=600,
+        height=800,
         )
     gr.ChatInterface(
         ask_llm,
